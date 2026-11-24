@@ -143,3 +143,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 out/
+
+# Mutation testing (mutmut writes its working copy here)
+mutants/
