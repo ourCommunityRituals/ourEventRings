@@ -12,7 +12,11 @@ the hexagons at res 7, 6 and 5; the corridors and their nodes in the middle,
 where the map is measuring; the rings highlighted on top. It steps through
 them one at a time, earlier layers faded, or shows them all.
 
-Usage: python tools/prototype_data.py OUT.html   (OUT.json writes the data only)
+Styling is @ocr/ui only (ADR-008): the page links /ui.css and colours every
+mark with an @ocr/ui token. To view it outside a worker that serves /ui.css,
+pass the stylesheet built from the pinned hub commit and it is inlined.
+
+Usage: python tools/prototype_data.py OUT.html [UI.css]   (OUT.json writes the data only)
 """
 import json
 import math
@@ -76,6 +80,14 @@ def town_tints(towns: dict, touch_m: float = 50) -> dict:
         used = {tint[o] for o in tint if grown[name].intersects(grown[o])}
         tint[name] = next(i for i in range(TINTS + len(used)) if i not in used) % TINTS
     return tint
+
+
+def page(data: str, ui_css: Path | None = None) -> str:
+    """The template with the data inlined, and /ui.css too when a path is given."""
+    html = TEMPLATE.read_text().replace("__NCR_DATA__", data.replace("</", "<\\/"))
+    if ui_css:
+        html = html.replace('<link rel="stylesheet" href="/ui.css">', "<style>" + Path(ui_css).read_text() + "</style>")
+    return html
 
 
 def place(geo, lat0, lng0, frame):
@@ -159,7 +171,7 @@ def main():
     data = json.dumps({"chicago": chi, "sawyer": saw}, separators=(",", ":"))
     out = Path(sys.argv[1])
     if out.suffix == ".html":
-        data = TEMPLATE.read_text().replace("__NCR_DATA__", data.replace("</", "<\\/"))
+        data = page(data, Path(sys.argv[2]) if len(sys.argv) > 2 else None)
     out.write_text(data)
     print(f"wrote {sys.argv[1]}: {len(chi['segments'])} + {len(saw['segments'])} segments, "
           f"{len(chi['streets'])} streets, {len(chi['rings'])} practice rings")

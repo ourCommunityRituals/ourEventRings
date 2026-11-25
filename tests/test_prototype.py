@@ -35,7 +35,16 @@ def test_no_two_neighbouring_towns_share_a_tint_on_the_chicago_sw_map():
 def test_template_has_one_data_slot_and_the_layer_order():
     page = proto.TEMPLATE.read_text()
     assert page.count("__NCR_DATA__") == 1
-    order = [page.index(f"g('{g}')") for g in ("towns", "streets", "hex7", "strips", "nodes", "rings")]
+    order = [page.index(f"g('{g}'") for g in ("towns", "streets", "hex", "strips", "nodes", "rings")]
     assert order == sorted(order), "base, hexagons, corridors, nodes, then rings on top"
     for step in ("'base'", "'hex'", "'corridors'", "'rings'"):
         assert f"id:{step}" in page
+    assert '<link rel="stylesheet" href="/ui.css">' in page  # @ocr/ui only (ADR-008)
+
+
+def test_ui_css_is_inlined_only_when_given(tmp_path):
+    css = tmp_path / "ui.css"
+    css.write_text("body{color:var(--text)}")
+    page = proto.page("{}", css)
+    assert "body{color:var(--text)}" in page and 'href="/ui.css"' not in page
+    assert 'href="/ui.css"' in proto.page("{}")
