@@ -1,4 +1,4 @@
-"""Write the data file the NCR Layer Map prototype draws (one JSON, already projected).
+"""Build the NCR Layer Map prototype: one HTML page with its data inlined.
 
 Each place is projected to a flat plane in units of 100 m around its centre and
 written as SVG path strings, so the page draws with no map library. Layers:
@@ -6,7 +6,13 @@ streets, towns, Chicago community areas, Metra and CTA, res 7/6/5 hexagons,
 corridor segments, nodes, and, for Chicago, the practice busy places and rings
 with their saturation history (made-up practice data, labelled so on the page).
 
-Usage: python tools/prototype_data.py OUT.json
+The page stacks the layers in Matt's order (2026-11-25): the base map (towns,
+each in a light tint no neighbour shares, and roads) see-through at the bottom;
+the hexagons at res 7, 6 and 5; the corridors and their nodes in the middle,
+where the map is measuring; the rings highlighted on top. It steps through
+them one at a time, earlier layers faded, or shows them all.
+
+Usage: python tools/prototype_data.py OUT.html   (OUT.json writes the data only)
 """
 import json
 import math
@@ -54,6 +60,24 @@ class Plane:
         return self.ring([(lng, lat) for lat, lng in h3.cell_to_boundary(cell)])
 
 
+TINTS = 6  # light tints the page defines for towns (--tint0 to --tint5)
+TEMPLATE = Path(__file__).resolve().parent / "prototype" / "ncr-layer-map.html"
+
+
+def town_tints(towns: dict, touch_m: float = 50) -> dict:
+    """A tint index per town so that no two towns that touch share one.
+
+    Greedy, largest town first; towns closer than touch_m count as touching.
+    """
+    pad = touch_m / 111_000
+    grown = {n: g.buffer(pad) for n, g in towns.items()}
+    tint: dict = {}
+    for name in sorted(towns, key=lambda n: -towns[n].area):
+        used = {tint[o] for o in tint if grown[name].intersects(grown[o])}
+        tint[name] = next(i for i in range(TINTS + len(used)) if i not in used) % TINTS
+    return tint
+
+
 def place(geo, lat0, lng0, frame):
     pl = Plane(lat0, lng0)
     F = box(*frame)
@@ -62,12 +86,15 @@ def place(geo, lat0, lng0, frame):
     jur = load_jurisdictions(gdir / "jurisdictions.geojson")
     out = {"name": defs["name"], "towns": [], "areas": [], "transit": [], "streets": [], "hex": {}, "segments": [],
            "nodes": [], "busy": [], "rings": []}
+    tint = town_tints({name: g for name, kind, g in jur if kind == "municipality"})
     for name, kind, g in jur:
         g2 = g.intersection(F).simplify(0.0002)
         if g2.is_empty:
             continue
         x, y = pl.p(*g2.representative_point().coords[0])
         item = {"name": name, "d": pl.geom(g2), "at": [round(x, 1), round(y, 1)], "area": round(g2.area * 1e4, 2)}
+        if kind == "municipality":
+            item["c"] = tint[name]
         out["towns" if kind == "municipality" else "areas"].append(item)
     for fname, key in (("transit.geojson", "transit"), ("streets.geojson", "streets")):
         path = gdir / fname
@@ -129,7 +156,11 @@ def main():
     chi, pl = place("chicago-sw", 41.69, -87.69, (-87.77, 41.605, -87.615, 41.765))
     practice(chi, pl)
     saw, _ = place("sawyer-mi", 41.88, -86.60, (-86.64, 41.79, -86.545, 41.955))
-    Path(sys.argv[1]).write_text(json.dumps({"chicago": chi, "sawyer": saw}, separators=(",", ":")))
+    data = json.dumps({"chicago": chi, "sawyer": saw}, separators=(",", ":"))
+    out = Path(sys.argv[1])
+    if out.suffix == ".html":
+        data = TEMPLATE.read_text().replace("__NCR_DATA__", data.replace("</", "<\\/"))
+    out.write_text(data)
     print(f"wrote {sys.argv[1]}: {len(chi['segments'])} + {len(saw['segments'])} segments, "
           f"{len(chi['streets'])} streets, {len(chi['rings'])} practice rings")
 

@@ -54,6 +54,28 @@ python -m ncr corridors --geography geographies/chicago-sw --out out/corridors
 python tools/corridor_map.py geographies/chicago-sw corridors.png   # needs matplotlib
 ```
 
+## Layer map prototype (`tools/prototype_data.py`)
+
+One self-contained HTML page that draws the layers for people to read. The
+stack follows Matt's order (2026-11-25), bottom to top:
+
+1. **Base map**: towns, each in a light tint no neighbouring town shares, and
+   roads, kept see-through;
+2. **Hexagons**: res 7, 6 and 5 (small, medium, large), thin to heavy;
+3. **Corridors** and their nodes, in the middle: where the map is measuring;
+4. **Rings**, highlighted on top; tap one for its saturation.
+
+The page steps through the four, each with the earlier layers faded, or shows
+them all with a switch per layer. Small hexagons, side streets and segment
+names appear only when zoomed in. Busy places and rings are the practice data.
+
+```
+python tools/prototype_data.py out/ncr-layer-map.html   # template: tools/prototype/
+```
+
+Next installment: put the layer order, roles and meanings into the data itself
+(not only the page's drawing code), so an agent reads the same cues a person sees.
+
 ## Run it
 
 ```
