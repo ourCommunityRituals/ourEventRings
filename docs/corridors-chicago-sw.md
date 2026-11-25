@@ -114,9 +114,12 @@ Chicago box; 5 segments on 3 corridors and 6 nodes around Sawyer.
 The full table with town shares, edge share and hexagons per segment is what
 `python -m ncr corridors` writes (`corridor-segments.csv`, `.geojson`).
 
-## Ring saturation: proposal for the next step
+## Ring saturation
 
-Not built in this change; written down so it can be decided first.
+Built in `ncr/saturation.py`; the admin layer carries it on each ring and
+`python -m ncr build` writes `research/ring-saturation-history.csv`. Matt
+(2026-11-25) took the street and node list as the starting point, to be
+calibrated through practice.
 
 - **Saturation per ring is read from the hexagons inside it**, as the average of
   four shares, each 0 to 1 and each a ratio of scan counts: coverage (hexagons

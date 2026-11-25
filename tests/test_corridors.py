@@ -91,9 +91,10 @@ def test_hexagons_are_res_7_and_cover_the_strip():
 
 
 def test_outputs_carry_segments_and_nodes(tmp_path):
-    d = defs([ACROSS], [Node("a", "A", (-87.71, 41.70), "border retail")])
+    d = defs([ACROSS], [Node("a", "A", (-87.71, 41.70), "border retail")]) | {"rules": "segment-rules-v1"}
     segs = segments(d, [WEST, EAST])
     fc = to_geojson(d, segs)
+    assert fc["rules"] == "segment-rules-v1"
     layers = [f["properties"]["layer"] for f in fc["features"]]
     assert layers == ["corridor", "corridor", "node"]
     assert fc["provisional"] is True

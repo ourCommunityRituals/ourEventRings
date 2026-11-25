@@ -21,6 +21,12 @@ from shapely.ops import unary_union
 from .compute import Result
 from .rows import publish
 
+
+def ring_saturation(result, ring):
+    from .saturation import ring_saturation as measure  # saturation imports layers for the outline
+
+    return measure(result, ring)
+
 PUBLIC_KEYS = {"layer", "level", "direction", "role", "label", "status", "pattern", "ring", "ends"}
 
 
@@ -86,8 +92,11 @@ def features(result: Result, labels: dict[str, str], with_numbers: bool) -> list
     for ring in result.rings:
         props = {"layer": "ring", "role": "core", "ring": ring.ring_id, "label": _label(labels, ring.core)}
         if with_numbers:
+            sat = ring_saturation(result, ring)
             props |= {"core_cells": ring.core, "periphery_cells": ring.periphery,
-                      "seasons_seen": ring.seasons_seen, "temporal": ring.temporal}
+                      "seasons_seen": ring.seasons_seen, "temporal": ring.temporal,
+                      "saturation": sat.saturation, "coverage": sat.coverage, "steadiness": sat.steadiness,
+                      "closure": sat.closure, "reciprocity": sat.reciprocity, "confidence": sat.confidence}
         out.append({"type": "Feature", "geometry": _round_geom(ring_outline(ring.core)), "properties": props})
         for p in ring.periphery:
             pprops = {"layer": "ring", "role": "periphery", "ring": ring.ring_id, "label": labels.get(p, "")}
@@ -118,6 +127,18 @@ def check_public(fc: dict) -> None:
                 raise ValueError(f"level must be 1, 2 or 3, got {v}")
     if fc.get("unit") is not None:
         raise ValueError("public layer must not name a unit of count")
+
+
+def write_history(rows: list[dict], out: Path) -> Path:
+    from .saturation import HISTORY_COLUMNS
+
+    path = out / "research" / "ring-saturation-history.csv"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=HISTORY_COLUMNS, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(rows)
+    return path
 
 
 def write_all(result: Result, labels: dict[str, str], out: Path) -> dict[str, Path]:

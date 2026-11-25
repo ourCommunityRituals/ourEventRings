@@ -60,8 +60,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"wrote {a.out}/practice-rows.csv and practice-labels.csv")
         return 0
 
-    result = run(read_rows(a.rows), as_of=a.as_of)
+    rows = read_rows(a.rows)
+    result = run(rows, as_of=a.as_of)
     paths = write_all(result, read_labels(a.labels), a.out)
+    from .layers import write_history
+    from .saturation import history
+
+    paths["saturation history"] = write_history(history([r for r in rows if r.week <= result.as_of]), a.out)
     print(f"as of {result.as_of}: {len(result.cells)} cells, {len(result.links)} links, "
           f"{len(result.rings)} ring(s); rings by resolution {result.fractal}")
     for k, v in paths.items():

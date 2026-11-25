@@ -32,6 +32,15 @@ ADR-009 leaves ring thresholds to be fitted from real data, so they live in
   rounded down to 5.
 - `research/*.csv`: corridors, cells, rings, corridor by event type.
 
+## Ring saturation (`ncr/saturation.py`)
+
+How far each ring has filled in, from the hexagons inside it: the average of
+coverage, steadiness, closure and reciprocity, each 0 to 1, with a confidence
+measure beside it and, in the history, the same ring a year earlier and the
+median of rings of the same size. Measured at res 7, 6 and 5 (small, medium,
+large). No threshold is set: where a ring counts as saturated is found through
+practice. Admin layer and research tables only; the public layer stays shapes.
+
 ## Corridor segments (`ncr/corridors.py`)
 
 The commercial strips the layers are read along, one set per place in
