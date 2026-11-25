@@ -1,0 +1,72 @@
+# Mutation testing for ncr/ (docs/mutation-testing.md).
+#
+# The tests say the NCR layers are computed right and that the privacy guards
+# hold (rows.py refuses a person column, an unrounded or under-5 row; layers.py
+# keeps every number out of the public layer). mutmut checks the tests would
+# notice: it writes one small fault at a time into ncr/ and reruns the tests.
+# A mutant that survives is a fault the tests would let ship. Each file has a
+# floor in mutation-floors.json (tools/mutation_floor.py), and on a pull
+# request no floor may be lowered or dropped against the base branch.
+#
+# About a minute. Not a required check (that is an owner setting). No secrets.
+name: Mutation testing
+
+on:
+  pull_request:
+    paths:
+      - 'ncr/**'
+      - 'tests/**'
+      - 'tools/mutation_floor.py'
+      - 'mutation-floors.json'
+      - 'setup.cfg'
+      - 'requirements.txt'
+      - '.github/workflows/mutation-testing.yml'
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mutmut:
+    name: Mutation (ncr)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install
+        run: pip install -r requirements.txt mutmut==3.8.1
+      - name: Base branch floors
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .mutation-base
+          persist-credentials: false
+          sparse-checkout: mutation-floors.json
+          sparse-checkout-cone-mode: false
+      - name: Floor ratchet against the base branch
+        if: github.event_name == 'pull_request'
+        run: |
+          if [ -f .mutation-base/mutation-floors.json ]; then
+            python tools/mutation_floor.py --ratchet .mutation-base/mutation-floors.json
+          else
+            echo "mutation-floors.json is new in this pull request; nothing to compare."
+          fi
+      - name: mutmut
+        run: mutmut run
+      - name: Per-file floors
+        run: python tools/mutation_floor.py
+      - name: Survivors
+        if: always()
+        run: mutmut results || true
