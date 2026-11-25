@@ -34,6 +34,9 @@ jobs:
           diff -q fixtures/practice-labels.csv /tmp/practice/practice-labels.csv
       - name: Build the layers from the practice rows
         run: python -m ncr build --rows fixtures/practice-rows.csv --labels fixtures/practice-labels.csv --out out
+      - name: Build the proposed corridor segments for each geography
+        run: |
+          for g in geographies/*/; do python -m ncr corridors --geography "$g" --out "out/corridors/$(basename "$g")"; done
       - uses: actions/upload-artifact@v4
         with:
           name: ncr-practice-layers

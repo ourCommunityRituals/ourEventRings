@@ -1,0 +1,123 @@
+{
+ "name": "Sawyer, Michigan (Harbor Country)",
+ "rules": "segment-rules-v1",
+ "lat0": 41.89,
+ "strip_m": 150,
+ "snap_m": 150,
+ "edge_m": 150,
+ "note": "Street lines are hand-placed from town centres and need a check on the ground; Sawyer itself is unincorporated (Chikaming Township) and has no Census place line.",
+ "corridors": [
+  {
+   "id": "red-arrow",
+   "name": "Red Arrow Highway",
+   "tier": 1,
+   "line": [
+    [
+     -86.624,
+     41.8696
+    ],
+    [
+     -86.5945,
+     41.8848
+    ],
+    [
+     -86.585,
+     41.906
+    ],
+    [
+     -86.5567,
+     41.9431
+    ]
+   ],
+   "why": "The old shore road the Harbor Country towns string along; Sawyer's market, butcher and antique mall sit on it."
+  },
+  {
+   "id": "sawyer-rd",
+   "name": "Sawyer Road",
+   "tier": 2,
+   "line": [
+    [
+     -86.5945,
+     41.8848
+    ],
+    [
+     -86.582,
+     41.8838
+    ]
+   ],
+   "why": "Downtown Sawyer to I-94 exit 12, the door from Chicago; the brewery and garden centre are here."
+  },
+  {
+   "id": "three-oaks-rd",
+   "name": "Three Oaks Road",
+   "tier": 2,
+   "line": [
+    [
+     -86.5945,
+     41.8848
+    ],
+    [
+     -86.6106,
+     41.7986
+    ]
+   ],
+   "why": "Ties Sawyer to Three Oaks, the next town inland."
+  }
+ ],
+ "nodes": [
+  {
+   "id": "sawyer",
+   "name": "Downtown Sawyer",
+   "at": [
+    -86.5945,
+    41.8848
+   ],
+   "kind": "founding"
+  },
+  {
+   "id": "exit-12",
+   "name": "I-94 exit 12",
+   "at": [
+    -86.582,
+    41.8838
+   ],
+   "kind": "transit"
+  },
+  {
+   "id": "harbert",
+   "name": "Harbert",
+   "at": [
+    -86.624,
+    41.8696
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "warren-dunes",
+   "name": "Warren Dunes State Park",
+   "at": [
+    -86.585,
+    41.906
+   ],
+   "kind": "destination"
+  },
+  {
+   "id": "bridgman",
+   "name": "Bridgman",
+   "at": [
+    -86.5567,
+    41.9431
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "three-oaks",
+   "name": "Three Oaks",
+   "at": [
+    -86.6106,
+    41.7986
+   ],
+   "kind": "crossroads"
+  }
+ ]
+}

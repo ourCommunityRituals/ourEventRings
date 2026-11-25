@@ -1,5 +1,6 @@
 """python -m ncr practice --out DIR      write the practice rows and labels
 python -m ncr build --rows CSV [--labels CSV] --out DIR [--as-of YYYY-MM-DD]
+python -m ncr corridors --geography DIR --out DIR   corridor segments for one geography
 """
 from __future__ import annotations
 
@@ -31,7 +32,22 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--labels", type=Path)
     b.add_argument("--out", type=Path, required=True)
     b.add_argument("--as-of", type=date.fromisoformat)
+    co = sub.add_parser("corridors")
+    co.add_argument("--geography", type=Path, required=True)
+    co.add_argument("--out", type=Path, required=True)
     a = p.parse_args(argv)
+
+    if a.cmd == "corridors":
+        from .corridors import load_definitions, load_jurisdictions, segments, write_segments
+
+        defs = load_definitions(a.geography / "corridors.json")
+        segs = segments(defs, load_jurisdictions(a.geography / "jurisdictions.geojson"))
+        paths = write_segments(defs, segs, a.out)
+        straddling = sum(s.straddles for s in segs)
+        print(f"{defs['name']}: {len(segs)} segments, {straddling} straddle a town line")
+        for k, v in paths.items():
+            print(f"  {k}: {v}")
+        return 0
 
     if a.cmd == "practice":
         a.out.mkdir(parents=True, exist_ok=True)

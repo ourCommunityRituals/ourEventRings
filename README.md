@@ -32,6 +32,19 @@ ADR-009 leaves ring thresholds to be fitted from real data, so they live in
   rounded down to 5.
 - `research/*.csv`: corridors, cells, rings, corridor by event type.
 
+## Corridor segments (`ncr/corridors.py`)
+
+The commercial strips the layers are read along, one set per place in
+`geographies/`. A strip is cut at its nodes, never at a town line; the towns
+it crosses are reported as an overlay, with the share of the strip in each and
+whether it straddles a line. Each segment lists its res 7 hexagons. Rules and
+research: `docs/corridors-chicago-sw.md` (segment rules v1, proposed).
+
+```
+python -m ncr corridors --geography geographies/chicago-sw --out out/corridors
+python tools/corridor_map.py geographies/chicago-sw corridors.png   # needs matplotlib
+```
+
 ## Run it
 
 ```

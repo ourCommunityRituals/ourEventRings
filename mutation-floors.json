@@ -2,6 +2,7 @@
   "$comment": "Per-file mutation floors for ncr/ (mutmut, setup.cfg): each file's score when last measured. Never lowered (tools/mutation_floor.py --ratchet). ncr/__main__.py is the command line and has no test yet, so it has no floor. See docs/mutation-testing.md.",
   "floors": {
     "ncr/compute.py": 66.29,
+    "ncr/corridors.py": 66.15,
     "ncr/layers.py": 48.29,
     "ncr/practice.py": 61.48,
     "ncr/rows.py": 85.05

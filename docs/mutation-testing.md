@@ -29,6 +29,7 @@ floor when the tests improve; it may never go down.
 | --- | --- | --- |
 | `ncr/rows.py` | 85.05% | the input guard: no person column, res 7 cells only, under-5 and unrounded rows refused |
 | `ncr/compute.py` | 66.29% | nodes, corridors, rings, growth patterns |
+| `ncr/corridors.py` | 66.15% | corridor segments: cut at nodes never at town lines, town shares, edge share, hexagons |
 | `ncr/practice.py` | 61.48% | the practice data generator |
 | `ncr/layers.py` | 48.29% | the GeoJSON layers and the public-layer guard |
 
