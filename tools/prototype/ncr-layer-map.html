@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NCR Layer Map</title>
+<link rel="stylesheet" href="/ui.css">
+<style>
+.stage{display:grid;gap:16px;grid-template-columns:minmax(0,1fr) 320px;align-items:start}
+@media(max-width:820px){.stage{grid-template-columns:minmax(0,1fr)}}
+.mapbox{position:relative;height:70vh;border:1px solid var(--border-strong);border-radius:var(--radius-sm);overflow:hidden;touch-action:none}
+.zoom{position:absolute;right:8px;top:8px;display:grid;gap:6px}
+#map :focus{outline:none}
+</style>
+</head>
+<body>
+<!--
+  Styling: @ocr/ui only (ADR-008). Page chrome uses /ui.css classes; the map's
+  marks take @ocr/ui tokens as SVG attributes from MARK below, so the page
+  declares no colours of its own. Layer order (Matt, 2026-11-25), bottom to top:
+  base map (towns, roads) see-through, hexagons (res 7/6/5), corridors and
+  nodes, rings highlighted on top.
+-->
+<header class="page-header">
+  <h1>NCR Layer Map</h1>
+  <p>Prototype. Base map, then hexagons, corridors and rings on top. Step through them or see them all. Tap a strip, a dot or a ring to read it.</p>
+</header>
+<main class="content">
+  <div class="toolbar">
+    <span class="section-title">Place</span>
+    <div class="view-toggle" role="group" aria-label="Place">
+      <button class="view-btn active" id="place-chicago" aria-pressed="true" data-place="chicago">Chicago SW</button>
+      <button class="view-btn" id="place-sawyer" aria-pressed="false" data-place="sawyer">Sawyer, MI</button>
+    </div>
+  </div>
+  <div class="filter-row" id="steps" role="group" aria-label="Build the map one layer at a time"></div>
+  <div class="filter-row" id="chips" role="group" aria-label="Layers"></div>
+  <div class="stage">
+    <div>
+      <div class="mapbox" id="mapbox">
+        <svg id="map" width="100%" height="100%" role="img" aria-label="Layered map of corridor segments, nodes, hexagon areas and rings"></svg>
+        <div class="zoom">
+          <button class="btn btn-secondary" id="zin" aria-label="Zoom in">+</button>
+          <button class="btn btn-secondary" id="zout" aria-label="Zoom out">−</button>
+          <button class="btn btn-secondary" id="zfit" aria-label="Fit the map">⤢</button>
+        </div>
+      </div>
+      <p class="list-sub" id="tag"></p>
+    </div>
+    <aside class="card" id="panel" aria-live="polite"></aside>
+  </div>
+</main>
+<script type="application/json" id="ncr-data">__NCR_DATA__</script>
+<script>
+const DATA = JSON.parse(document.getElementById('ncr-data').textContent);
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('map');
+const panel = document.getElementById('panel');
+const T = n => `var(--${n})`;  // an @ocr/ui token
+// Map marks, from @ocr/ui tokens only.
+const TINTS = ['ocr-blue-300','ocr-amber-400','ocr-teal-300','ocr-red-300','ocr-navy-500','ocr-green-400'].map(T);
+const MARK = {
+  town: {stroke:T('text-muted'), 'stroke-opacity':.35, 'stroke-width':.9, 'fill-opacity':.22},
+  street: {minor:[T('border'),.8], collector:[T('border'),.8], arterial:[T('border-strong'),1.8], expressway:[T('ocr-amber-400'),3]},
+  area: {fill:'none', stroke:T('text-muted'), 'stroke-width':.7, 'stroke-dasharray':'2 3', opacity:.5},
+  transit: {fill:'none', stroke:T('info'), 'stroke-width':1.6, 'stroke-dasharray':'7 3', opacity:.8},
+  hex: {7:[.7,.45], 6:[1.4,.6], 5:[2.2,.8]},
+  one: T('accent'), straddle: T('warn'), ring: T('success'), busy: T('accent'),
+  node: {'crossroads':T('text'),'border retail':T('warn'),'transit':T('info'),'founding':T('success'),'destination':T('success')},
+  sel: T('text'), label: T('text-muted'), halo: T('bg'),
+};
+const LAYERS = [
+  {id:'strips', label:'Corridors', sw:MARK.straddle, on:true},
+  {id:'rings', label:'Rings', note:'practice', sw:MARK.ring, on:true},
+  {id:'nodes', label:'Nodes', sw:MARK.sel, on:true},
+  {id:'towns', label:'Towns', sw:TINTS[1], on:true},
+  {id:'streets', label:'Streets', sw:T('border-strong'), on:true},
+  {id:'hex7', label:'Small areas', note:'zoom in', sw:T('text-muted'), on:true, more:true},
+  {id:'areas', label:'Community areas', sw:T('text-muted'), on:false, more:true},
+  {id:'transit', label:'Metra and CTA', sw:MARK.transit.stroke, on:false, more:true},
+  {id:'busy', label:'Busy places', note:'practice', sw:MARK.busy, on:false, more:true},
+  {id:'hex6', label:'Medium areas', note:'res 6', sw:T('text-muted'), on:true, more:true},
+  {id:'hex5', label:'Large areas', note:'res 5', sw:T('text-muted'), on:false, more:true},
+  {id:'labels', label:'Names', sw:T('text-muted'), on:true, more:true},
+];
+// Detail that appears only up close (zoom factor at which it shows).
+const NEAR = {hex7:2.2, minorStreets:2, segLabels:3, areaLabels:2.5};
+const BASE = ['towns','streets'];
+const STEPS = [
+  {id:'base', n:1, label:'Base map', focus:['towns','streets'], fade:[], say:'The base: towns in light tints and the main streets, kept see-through.'},
+  {id:'hex', n:2, label:'Hexagons', focus:['hex7','hex6','hex5'], fade:[], say:'The three sizes rings are read at: small (res 7, thin), medium (res 6) and large (res 5, heavy).'},
+  {id:'corridors', n:3, label:'Corridors', focus:['strips','nodes'], fade:['hex6'], say:'Corridors and their nodes: where the map is measuring. Amber ones cross a town line.'},
+  {id:'rings', n:4, label:'Rings', focus:['rings'], fade:['hex6','strips','nodes'], say:'Rings on top, where traffic runs both ways. Tap one for its saturation.'},
+  {id:'all', label:'All layers', say:''},
+];
+const state = {step:'base', more:false, place:'chicago', on:Object.fromEntries(LAYERS.map(l=>[l.id,l.on])), sel:null, k:1, x:0, y:0};
+try { const s = JSON.parse(localStorage.getItem('ncr-layers-v6')||'null'); if (s) Object.assign(state.on, s); } catch(e) {}
+const NODE_WORD = {'crossroads':'Crossroads','border retail':'Retail at a town line','transit':'Station or transit hub','founding':'Founding node','destination':'Destination'};
+
+function el(tag, attrs, parent){ const e=document.createElementNS(NS,tag); for (const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function swatch(fill, round){ return `<svg width="14" height="10" aria-hidden="true"><rect width="14" height="10" rx="${round?5:3}" fill="${fill}"/></svg>`; }
+function chip(id, html, active, onclick){
+  const b=document.createElement('button'); b.className='filter-chip'+(active?' active':''); b.id=id;
+  b.setAttribute('aria-pressed', active); b.innerHTML=html; b.onclick=onclick; return b;
+}
+
+function steps(){
+  const box=document.getElementById('steps'); box.innerHTML='';
+  for (const st of STEPS) box.appendChild(chip('step-'+st.id, (st.n?`${st.n}.&nbsp;`:'')+esc(st.label), state.step===st.id,
+    ()=>{ state.step=st.id; steps(); apply(); }));
+  const i=STEPS.findIndex(x=>x.id===state.step);
+  if (state.step!=='all' && i<STEPS.length-2){
+    const nx=document.createElement('button'); nx.className='btn btn-primary'; nx.id='step-next'; nx.textContent='Next →';
+    nx.onclick=()=>{ state.step=STEPS[i+1].id; steps(); apply(); }; box.appendChild(nx);
+  }
+  document.getElementById('chips').hidden = state.step!=='all';
+}
+function chips(){
+  const box=document.getElementById('chips'); box.innerHTML='';
+  for (const l of LAYERS){
+    if (l.more && !state.more) continue;
+    const b=chip('layer-'+l.id, `${swatch(l.sw)}&nbsp;${esc(l.label)}${l.note?`&nbsp;<span class="meta-badge">${esc(l.note)}</span>`:''}`, state.on[l.id], ()=>{
+      state.on[l.id]=!state.on[l.id]; b.classList.toggle('active',state.on[l.id]); b.setAttribute('aria-pressed',state.on[l.id]); apply();
+      try{localStorage.setItem('ncr-layers-v6',JSON.stringify(state.on))}catch(e){} });
+    box.appendChild(b);
+  }
+  const more=document.createElement('button'); more.className='btn-link'; more.id='layer-more';
+  more.setAttribute('aria-expanded', state.more?'true':'false'); more.textContent=state.more?'Fewer layers':'More layers';
+  more.onclick=()=>{ state.more=!state.more; chips(); }; box.appendChild(more);
+}
+
+let root, groups={}, labelEls=[], minorStreets=[];
+function draw(){
+  const D=DATA[state.place]; svg.innerHTML=''; groups={}; labelEls=[]; minorStreets=[];
+  const [bx,by,bw,bh]=D.box; svg.setAttribute('viewBox',`${bx} ${by} ${bw} ${bh}`); svg.dataset.box=D.box.join(' ');
+  root=el('g',{},svg);
+  const g=(id,a={})=>(groups[id]=el('g',{'data-layer':id,...a},root));
+  // Bottom to top: base map, hexagons, corridors and nodes, rings, names.
+  g('towns',{opacity:.6}); g('streets',{fill:'none','stroke-linecap':'round',opacity:.7}); g('areas',MARK.area); g('transit',MARK.transit);
+  g('busy'); for (const r of [7,6,5]) g('hex'+r,{fill:'none',stroke:T('text-muted'),'stroke-width':MARK.hex[r][0],'stroke-opacity':MARK.hex[r][1]});
+  g('strips'); g('nodes'); g('rings'); g('labels');
+  for (const t of D.towns) el('path',{d:t.d,'fill-rule':'evenodd',fill:TINTS[t.c||0],...MARK.town},groups.towns);
+  for (const s of D.streets) if (s.d){ const [c,w]=MARK.street[s.kind]||MARK.street.minor;
+    const p=el('path',{d:s.d,stroke:c,'stroke-width':w},groups.streets); if(!(s.kind==='arterial'||s.kind==='expressway')) minorStreets.push(p); }
+  for (const a of D.areas) el('path',{d:a.d},groups.areas);
+  for (const t of D.transit) if (t.d) el('path',{d:t.d},groups.transit);
+  for (const h of D.busy) el('path',{d:h.d,fill:MARK.busy,'fill-opacity':[0,.25,.5,.8][h.level]},groups.busy);
+  for (const r of [7,6,5]) for (const h of D.hex[r]) el('path',{d:h.d},groups['hex'+r]);
+  for (const s of D.segments){
+    const c=s.straddles?MARK.straddle:MARK.one;
+    const p=el('path',{d:s.d,fill:c,stroke:c,'stroke-width':.6,'fill-opacity':s.tier===1?.62:.38,tabindex:0,role:'button',cursor:'pointer','aria-label':`${s.name}, ${s.from} to ${s.to}`},groups.strips);
+    p.dataset.id=s.id; p.dataset.base=p.getAttribute('fill-opacity');
+    p.addEventListener('click',e=>{e.stopPropagation(); select('seg',s.id)}); p.addEventListener('focus',()=>select('seg',s.id));
+    p.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault(); select('seg',s.id)} });
+  }
+  for (const n of D.nodes){
+    const c=el('circle',{cx:n.at[0],cy:n.at[1],r:5,fill:MARK.node[n.kind]||MARK.sel,stroke:MARK.halo,'stroke-width':1.4,tabindex:0,role:'button',cursor:'pointer','aria-label':n.name},groups.nodes);
+    c.dataset.id=n.id; c.addEventListener('click',e=>{e.stopPropagation(); select('node',n.id)}); c.addEventListener('focus',()=>select('node',n.id));
+    c.addEventListener('keydown',e=>{ if(e.key==='Enter'){select('node',n.id)} });
+  }
+  for (const r of D.rings){
+    for (const p of r.periphery) el('path',{d:p,fill:'none',stroke:MARK.ring,'stroke-width':1.3,'stroke-dasharray':'3 3'},groups.rings);
+    const small=r.res===7;
+    const o=el('path',{d:r.d,fill:MARK.ring,'fill-opacity':small?.2:.08,stroke:MARK.ring,'stroke-width':small?3:1.8,
+      'stroke-dasharray':small?'none':'9 4',tabindex:0,role:'button',cursor:'pointer','aria-label':`${r.size} ring: ${r.places.join(', ')}`},groups.rings);
+    o.dataset.id=r.id; o.dataset.w=o.getAttribute('stroke-width');
+    o.addEventListener('click',e=>{e.stopPropagation(); select('ring',r.id)}); o.addEventListener('focus',()=>select('ring',r.id));
+    o.addEventListener('keydown',e=>{ if(e.key==='Enter'){select('ring',r.id)} });
+  }
+  for (const p of svg.querySelectorAll('path')) p.setAttribute('vector-effect','non-scaling-stroke');
+  const lab=(x,y,txt,kind,size)=>{ const t=el('text',{x,y,'data-kind':kind,'text-anchor':'middle','dominant-baseline':'middle',fill:kind==='seg'?MARK.sel:MARK.label,
+    stroke:MARK.halo,'paint-order':'stroke','stroke-linejoin':'round','font-style':kind==='hood'?'italic':'normal','pointer-events':'none'},groups.labels);
+    t.textContent=txt; t.dataset.size=size; labelEls.push(t); };
+  for (const t of D.towns) if (t.area>0.5) lab(t.at[0],t.at[1],t.name,'town',10.5);
+  for (const a of D.areas) lab(a.at[0],a.at[1]+4,a.name,'hood',10);
+  for (const s of D.segments) lab(s.mid[0],s.mid[1],s.id,'seg',8.5);
+  state.sel=null; fit(); apply(); info();
+}
+
+function show(node, on){ node.setAttribute('display', on?'inline':'none'); }
+function apply(){
+  if (!groups.labels) return;
+  const k=state.k;
+  for (const p of minorStreets) show(p, k>=NEAR.minorStreets);
+  const st=STEPS.find(x=>x.id===state.step);
+  if (st && st.focus){
+    for (const id in groups){
+      if (id==='labels') continue;
+      const f=st.focus.includes(id), d=st.fade.includes(id)||BASE.includes(id);
+      show(groups[id], f||d);
+      if (!BASE.includes(id)) groups[id].setAttribute('opacity', f?1:.4);
+      groups[id].setAttribute('pointer-events', f?'auto':'none');
+    }
+    for (const t of labelEls){
+      const kd=t.dataset.kind;
+      show(t, kd==='town' ? (st.id==='base'||st.id==='hex') : kd==='seg' ? (st.id==='corridors' && k>=NEAR.segLabels) : false);
+    }
+    document.getElementById('tag').textContent=`Step ${st.n} of 4. ${st.say}`;
+    return;
+  }
+  for (const id in groups){
+    show(groups[id], state.on[id]!==false);
+    if (!BASE.includes(id)) groups[id].setAttribute('opacity',1);
+    groups[id].setAttribute('pointer-events','auto');
+  }
+  if (state.on.hex7) show(groups.hex7, k>=NEAR.hex7);
+  for (const t of labelEls){
+    const kd=t.dataset.kind;
+    show(t, kd==='seg' ? state.on.strips && k>=NEAR.segLabels : kd==='hood' ? state.on.areas && k>=NEAR.areaLabels : (state.on.towns || k<NEAR.segLabels));
+  }
+  document.getElementById('tag').textContent = k<NEAR.hex7 ? 'Zoom in for the small areas, side streets and segment names. More layers are under More layers.' : 'Streets: City of Chicago major streets; suburban streets follow the address grid (about 150 m).';
+}
+
+function view(){
+  root.setAttribute('transform',`translate(${state.x} ${state.y}) scale(${state.k})`);
+  const u=unitsPerPx()/state.k;
+  for (const t of labelEls){ t.setAttribute('font-size', (+t.dataset.size*u).toFixed(2)); t.setAttribute('stroke-width',(3*u).toFixed(2)); }
+  for (const c of svg.querySelectorAll('circle')) c.setAttribute('r',((state.k<2?4:5.5)*u).toFixed(2));
+  apply();
+}
+function unitsPerPx(){ const r=svg.getBoundingClientRect(); const [, , bw,bh]=svg.dataset.box.split(' ').map(Number); const u=Math.max(bw/r.width, bh/r.height); return (isFinite(u)&&u>0)?u:1; }
+function fit(){ state.k=1; state.x=0; state.y=0; view(); }
+function toUnits(px,py){ const pt=svg.createSVGPoint(); pt.x=px; pt.y=py; return pt.matrixTransform(svg.getScreenCTM().inverse()); }
+function zoomAt(f,ux,uy){ const k=Math.min(12,Math.max(.8,state.k*f)); f=k/state.k; state.x=ux-(ux-state.x)*f; state.y=uy-(uy-state.y)*f; state.k=k; view(); }
+function zoomCentre(f){ const [bx,by,bw,bh]=svg.dataset.box.split(' ').map(Number); zoomAt(f,bx+bw/2,by+bh/2); }
+document.getElementById('zin').onclick=()=>zoomCentre(1.6);
+document.getElementById('zout').onclick=()=>zoomCentre(1/1.6);
+document.getElementById('zfit').onclick=fit;
+svg.addEventListener('wheel',e=>{ e.preventDefault(); const u=toUnits(e.clientX,e.clientY); zoomAt(Math.exp(-e.deltaY*0.0015),u.x,u.y); },{passive:false});
+const ptrs=new Map(); let moved=0;
+svg.addEventListener('pointerdown',e=>{ ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); moved=0; svg.setAttribute('cursor','grabbing'); });
+svg.addEventListener('pointermove',e=>{
+  if(!ptrs.has(e.pointerId)) return;
+  const prev=ptrs.get(e.pointerId); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if (ptrs.size===1){ const a=toUnits(prev.x,prev.y), b=toUnits(e.clientX,e.clientY); state.x+=b.x-a.x; state.y+=b.y-a.y; moved+=Math.abs(e.clientX-prev.x)+Math.abs(e.clientY-prev.y); if(moved>4) svg.setPointerCapture(e.pointerId); view(); }
+  else if (ptrs.size===2){ const [p,q]=[...ptrs.values()]; const other=[...ptrs.entries()].find(([id])=>id!==e.pointerId)[1];
+    const d0=Math.hypot(prev.x-other.x,prev.y-other.y), d1=Math.hypot(p.x-q.x,p.y-q.y); const m=toUnits((p.x+q.x)/2,(p.y+q.y)/2);
+    if(d0>0) zoomAt(d1/d0,m.x,m.y); moved=99; }
+});
+const up=e=>{ ptrs.delete(e.pointerId); if(!ptrs.size) svg.setAttribute('cursor','grab'); };
+svg.addEventListener('pointerup',up); svg.addEventListener('pointercancel',up);
+svg.addEventListener('click',e=>{ if(moved<5){ state.sel=null; mark(); info(); } }, true);
+svg.addEventListener('click',e=>{ if(moved>=5){ e.stopPropagation(); } }, true);
+svg.setAttribute('cursor','grab');
+
+function select(kind,id){ if(moved>=5) return; state.sel={kind,id}; mark(); info(); }
+function mark(){
+  const on=(kind,id)=>state.sel?.kind===kind && state.sel.id===id;
+  for (const p of groups.strips.children){ const s=on('seg',p.dataset.id);
+    p.setAttribute('fill-opacity', s?.95:p.dataset.base); p.setAttribute('stroke', s?MARK.sel:p.getAttribute('fill')); p.setAttribute('stroke-width', s?2:.6); }
+  for (const c of groups.nodes.children){ const s=on('node',c.dataset.id); c.setAttribute('stroke', s?MARK.sel:MARK.halo); c.setAttribute('stroke-width', s?2.4:1.4); }
+  for (const c of groups.rings.querySelectorAll('[data-id]')) c.setAttribute('stroke-width', on('ring',c.dataset.id)?4:c.dataset.w);
+}
+function bars(rows, fill){
+  if(!rows.length) return '<p class="list-sub">None.</p>';
+  return '<div class="bar-chart">'+rows.map(([k,v,shown])=>`<div class="bar-row"><span class="bar-label">${esc(k)}</span><div class="bar-track"><svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 1" aria-hidden="true"><rect width="${Math.round(v*100)}" height="1" fill="${fill||T('accent')}"/></svg></div><span class="bar-count">${shown??Math.round(v*100)+'%'}</span></div>`).join('')+'</div>';
+}
+function chart(rings){
+  const W=300,H=130,L=30,R=8,Tp=8,B=22; const all=rings.flatMap(r=>r.series); if(!all.length) return '';
+  const t=d=>new Date(d).getTime(); const t0=Math.min(...all.map(p=>t(p[0]))), t1=Math.max(...all.map(p=>t(p[0])));
+  const X=d=>L+(t(d)-t0)/(t1-t0||1)*(W-L-R), Y=v=>Tp+(1-v)*(H-Tp-B);
+  const txt=(x,y,s,a)=>`<text x="${x}" y="${y}" text-anchor="${a}" font-size="10" fill="${MARK.label}">${s}</text>`;
+  let g=''; for (const v of [0,.5,1]) g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${T('border')}"/>`+txt(L-6,Y(v)+3,v.toFixed(1),'end');
+  for (const y of [...new Set(all.map(p=>p[0].slice(0,4)))]){ const d=y+'-01-01'; if(t(d)>=t0&&t(d)<=t1) g+=txt(X(d),H-6,y,'middle'); }
+  let lines=''; for (const r of rings){ const pts=r.series.map(p=>`${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ');
+    lines+=`<polyline points="${pts}" fill="none" stroke="${MARK.ring}" stroke-width="2" stroke-dasharray="${r.res===7?'none':'5 3'}"/>`; }
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" role="img" aria-label="Saturation over time for each practice ring">${g}${lines}</svg><p class="list-sub">${esc(rings.map(r=>`${r.size} ${r.res===7?'solid':'dashed'}`).join(' · '))}</p>`;
+}
+function dl(rows){ return rows.map(([k,v])=>`<div class="list-item"><span class="list-sub">${esc(k)}</span><span class="list-name">${v}</span></div>`).join(''); }
+function info(){
+  const D=DATA[state.place];
+  if (state.sel?.kind==='seg'){
+    const s=D.segments.find(x=>x.id===state.sel.id);
+    panel.innerHTML=`<p class="section-title">Corridor segment ${esc(s.id)} · ${s.tier===1?'primary strip':'secondary strip'}</p>
+      <h2 class="card-title">${esc(s.name)}</h2><p>${esc(s.from)} to ${esc(s.to)}</p>
+      <p><span class="meta-badge high">${s.straddles?'Straddles a town line':'Inside one town'}</span></p>
+      ${dl([['Length',`${s.km.toFixed(2)} km`],['Rides a town line',`${Math.round(s.edge*100)}% of its length`],['Small areas touched',s.hexes]])}
+      <p class="section-title">Share of the strip in each town</p>${bars(Object.entries(s.towns))}
+      ${Object.keys(s.hoods).length?`<p class="section-title">Chicago community areas</p>${bars(Object.entries(s.hoods))}`:''}
+      <p class="list-sub">${esc(D.why[s.id.replace(/-\d+$/,'')]||'')}</p>`;
+    return;
+  }
+  if (state.sel?.kind==='ring'){
+    const r=D.rings.find(x=>x.id===state.sel.id), s=r.sat;
+    panel.innerHTML=`<p class="section-title">${esc(r.size)} ring · practice data</p><h2 class="card-title">${esc(r.places.join(', '))}</h2>
+      ${dl([['Saturation',`<b>${s.saturation.toFixed(2)}</b> of 1, as of ${esc(r.as_of)}`],['Confidence',`${s.confidence.toFixed(2)} (${s.weeks_observed} of 52 weeks, ${s.seasons_seen} seasons)`],['Areas inside',`${s.active} of ${s.hexagons} with traffic`]])}
+      <p class="section-title">The four shares it averages</p>
+      ${bars([['Coverage: areas with traffic',s.coverage,s.coverage.toFixed(2)],['Steadiness: weeks with traffic',s.steadiness,s.steadiness.toFixed(2)],['Closure: scans that stay inside',s.closure,s.closure.toFixed(2)],['Reciprocity: both ways evenly',s.reciprocity,s.reciprocity.toFixed(2)]], MARK.ring)}
+      <p class="section-title">Saturation as the weeks layer up</p>${chart(D.rings)}
+      <p class="list-sub">No threshold is set. Where a ring counts as saturated is found in practice, read against its own history and rings of the same size. Small = res 7 areas (about 5 km²), medium = res 6 (about 36 km²).</p>`;
+    return;
+  }
+  if (state.sel?.kind==='node'){
+    const n=D.nodes.find(x=>x.id===state.sel.id);
+    const touching=D.segments.filter(s=>s.from===n.name||s.to===n.name);
+    panel.innerHTML=`<p class="section-title">Node · ${esc(NODE_WORD[n.kind]||n.kind)}</p><h2 class="card-title">${esc(n.name)}</h2>
+      <p class="section-title">Segments that meet here</p>
+      <div class="filter-row">${touching.map(s=>`<button class="filter-chip" data-seg="${esc(s.id)}">${esc(s.id)}</button>`).join('')||'None'}</div>`;
+    for (const b of panel.querySelectorAll('[data-seg]')) b.onclick=()=>{ state.sel={kind:'seg',id:b.dataset.seg}; mark(); info(); };
+    return;
+  }
+  const n=D.segments.length, st=D.segments.filter(s=>s.straddles).length;
+  const km=D.segments.reduce((a,s)=>a+s.km,0), kmS=D.segments.filter(s=>s.straddles).reduce((a,s)=>a+s.km,0);
+  const leg=(fill,txt,round)=>`<div class="bar-row">${swatch(fill,round)}<span class="list-sub">${txt}</span></div>`;
+  panel.innerHTML=`<p class="section-title">${esc(D.name)}</p><h2 class="card-title">${st} of ${n} segments straddle a town line</h2>
+    <p>That is ${kmS.toFixed(0)} of ${km.toFixed(0)} km of commercial strip. Corridors are cut where commerce clusters, never at a town line, so the gap between the two maps shows.</p>
+    ${leg(MARK.one,'Strip inside one town (darker = primary)')}${leg(MARK.straddle,'Strip across a town line (2+ towns hold 10%+)')}
+    ${leg(MARK.node['border retail'],'Retail sited at a town line',1)}${leg(MARK.node.transit,'Station or transit hub',1)}${leg(MARK.ring,'Founding node, destination, or ring (tap a ring for saturation)',1)}
+    <p class="list-sub">Busy places and the rings are practice data from ourEventRings, made up to show how the layers stack. No real scans are drawn. Saturation has no fixed threshold: it is measured over time and calibrated in practice.</p>`;
+}
+
+for (const b of document.querySelectorAll('[data-place]')) b.onclick=()=>{
+  state.place=b.dataset.place;
+  for (const o of document.querySelectorAll('[data-place]')){ o.setAttribute('aria-pressed', o===b); o.classList.toggle('active', o===b); }
+  draw(); };
+window.addEventListener('resize',()=>view());
+steps(); chips(); draw(); requestAnimationFrame(()=>view());
+if (window.ResizeObserver) new ResizeObserver(()=>view()).observe(svg);
+</script>
+</body>
+</html>

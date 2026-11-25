@@ -1,0 +1,560 @@
+{
+ "name": "Chicago southwest side: 79th to 147th, Halsted to Cicero",
+ "rules": "segment-rules-v1",
+ "lat0": 41.69,
+ "strip_m": 150,
+ "snap_m": 120,
+ "edge_m": 150,
+ "corridors": [
+  {
+   "id": "western",
+   "name": "Western Avenue",
+   "tier": 1,
+   "line": [
+    [
+     -87.682,
+     41.75025
+    ],
+    [
+     -87.682,
+     41.66235
+    ]
+   ],
+   "why": "Beverly's main street and the Chicago / Evergreen Park line from 87th to 103rd; studied as one corridor from 83rd to Vermont St in Blue Island across three governments; Evergreen Plaza and the 95th & Western TIF face each other across it."
+  },
+  {
+   "id": "cicero",
+   "name": "Cicero Avenue",
+   "tier": 1,
+   "line": [
+    [
+     -87.74155,
+     41.75025
+    ],
+    [
+     -87.74155,
+     41.62573
+    ]
+   ],
+   "why": "The heaviest strip in the box (34,600 vehicles a day at 103rd-111th, 2014 plan); Chicago's west line to 87th, then Hometown, Oak Lawn and Alsip; retail crossroads at 95th, 103rd and 111th."
+  },
+  {
+   "id": "halsted",
+   "name": "Halsted Street",
+   "tier": 1,
+   "line": [
+    [
+     -87.6423,
+     41.75025
+    ],
+    [
+     -87.6423,
+     41.62573
+    ]
+   ],
+   "why": "East edge; 95th & Halsted is the busiest bus crossroads by the 95th Red Line terminal; Red Line extension stations at 103rd, 111th and 130th sit just east; runs on through Calumet Park, Riverdale and Harvey."
+  },
+  {
+   "id": "pulaski",
+   "name": "Pulaski Road",
+   "tier": 2,
+   "line": [
+    [
+     -87.7217,
+     41.75025
+    ],
+    [
+     -87.7217,
+     41.62573
+    ]
+   ],
+   "why": "Evergreen Park / Oak Lawn / Hometown line from 87th to 103rd; Mount Greenwood's west half; Crestwood, Robbins and Midlothian to the south."
+  },
+  {
+   "id": "kedzie",
+   "name": "Kedzie Avenue",
+   "tier": 2,
+   "line": [
+    [
+     -87.70185,
+     41.75025
+    ],
+    [
+     -87.70185,
+     41.66235
+    ]
+   ],
+   "why": "Through Evergreen Park (95th & Kedzie retail), the 111th & Kedzie business district and Merrionette Park, into Blue Island."
+  },
+  {
+   "id": "ashland",
+   "name": "Ashland Avenue",
+   "tier": 2,
+   "line": [
+    [
+     -87.66215,
+     41.7356
+    ],
+    [
+     -87.66215,
+     41.65503
+    ]
+   ],
+   "why": "Calumet Park's own corridor plan runs Ashland from its Metra station to Raceway Park at Vermont."
+  },
+  {
+   "id": "e79",
+   "name": "79th Street",
+   "tier": 2,
+   "line": [
+    [
+     -87.6423,
+     41.75025
+    ],
+    [
+     -87.74155,
+     41.75025
+    ]
+   ],
+   "why": "North edge; long neighbourhood retail strip through Auburn Gresham and Ashburn."
+  },
+  {
+   "id": "e87",
+   "name": "87th Street",
+   "tier": 2,
+   "line": [
+    [
+     -87.6423,
+     41.7356
+    ],
+    [
+     -87.74155,
+     41.7356
+    ]
+   ],
+   "why": "Evergreen Park's north line; Dan Ryan Woods at Western; Hometown / Burbank corner at Cicero."
+  },
+  {
+   "id": "e95",
+   "name": "95th Street",
+   "tier": 1,
+   "line": [
+    [
+     -87.6423,
+     41.72095
+    ],
+    [
+     -87.74155,
+     41.72095
+    ]
+   ],
+   "why": "The spine: Red Line terminal and the 95th Street plan in the east, the 95th St streetscape (Wood to Ashland), 95th & Western, 95th & Kedzie in Evergreen Park, Oak Lawn's 95th & Cicero crossroads in the west."
+  },
+  {
+   "id": "e103",
+   "name": "103rd Street",
+   "tier": 2,
+   "line": [
+    [
+     -87.6423,
+     41.7063
+    ],
+    [
+     -87.74155,
+     41.7063
+    ]
+   ],
+   "why": "Evergreen Park's south line; Beverly / Washington Heights; Red Line extension station near its east end."
+  },
+  {
+   "id": "e111",
+   "name": "111th Street",
+   "tier": 1,
+   "line": [
+    [
+     -87.6423,
+     41.69165
+    ],
+    [
+     -87.74155,
+     41.69165
+    ]
+   ],
+   "why": "Mount Greenwood's business district (111th & Kedzie TIF) and Morgan Park; Oak Lawn / Alsip line at Cicero; Red Line extension station near its east end."
+  },
+  {
+   "id": "e119",
+   "name": "119th Street",
+   "tier": 2,
+   "line": [
+    [
+     -87.6423,
+     41.677
+    ],
+    [
+     -87.74155,
+     41.677
+    ]
+   ],
+   "why": "Chicago's line with Blue Island, Calumet Park and Merrionette Park for most of its length."
+  },
+  {
+   "id": "e127",
+   "name": "127th Street",
+   "tier": 1,
+   "line": [
+    [
+     -87.6423,
+     41.66235
+    ],
+    [
+     -87.74155,
+     41.66235
+    ]
+   ],
+   "why": "Calumet Park's commercial 127th (Winchester to Aberdeen), Blue Island's south side, Alsip, the Cal-Sag channel close by; meets Western at Blue Island's uptown."
+  },
+  {
+   "id": "e147",
+   "name": "147th Street (Sibley Blvd)",
+   "tier": 2,
+   "line": [
+    [
+     -87.6423,
+     41.62573
+    ],
+    [
+     -87.74155,
+     41.62573
+    ]
+   ],
+   "why": "South edge; Harvey, Dixmoor, Posen, Midlothian, Oak Forest share it."
+  }
+ ],
+ "nodes": [
+  {
+   "id": "n79-western",
+   "name": "79th & Western",
+   "at": [
+    -87.682,
+    41.75025
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n79-cicero",
+   "name": "79th & Cicero (Ford City nearby)",
+   "at": [
+    -87.74155,
+    41.75025
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n87-western",
+   "name": "87th & Western (Dan Ryan Woods)",
+   "at": [
+    -87.682,
+    41.7356
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n87-cicero",
+   "name": "87th & Cicero",
+   "at": [
+    -87.74155,
+    41.7356
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n95-halsted",
+   "name": "95th & Halsted (Red Line terminal)",
+   "at": [
+    -87.6423,
+    41.72095
+   ],
+   "kind": "transit"
+  },
+  {
+   "id": "n95-ashland",
+   "name": "95th & Ashland",
+   "at": [
+    -87.66215,
+    41.72095
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n95-western",
+   "name": "95th & Western (Evergreen Plaza)",
+   "at": [
+    -87.682,
+    41.72095
+   ],
+   "kind": "border retail"
+  },
+  {
+   "id": "n95-kedzie",
+   "name": "95th & Kedzie",
+   "at": [
+    -87.70185,
+    41.72095
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n95-pulaski",
+   "name": "95th & Pulaski",
+   "at": [
+    -87.7217,
+    41.72095
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n95-cicero",
+   "name": "95th & Cicero (Oak Lawn crossroads)",
+   "at": [
+    -87.74155,
+    41.72095
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n103-halsted",
+   "name": "103rd & Halsted (Red Line extension)",
+   "at": [
+    -87.6423,
+    41.7063
+   ],
+   "kind": "transit"
+  },
+  {
+   "id": "n103-western",
+   "name": "103rd & Western",
+   "at": [
+    -87.682,
+    41.7063
+   ],
+   "kind": "border retail"
+  },
+  {
+   "id": "n103-cicero",
+   "name": "103rd & Cicero",
+   "at": [
+    -87.74155,
+    41.7063
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n111-halsted",
+   "name": "111th & Halsted (Red Line extension)",
+   "at": [
+    -87.6423,
+    41.69165
+   ],
+   "kind": "transit"
+  },
+  {
+   "id": "n111-western",
+   "name": "111th & Western",
+   "at": [
+    -87.682,
+    41.69165
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n111-kedzie",
+   "name": "111th & Kedzie (Mount Greenwood)",
+   "at": [
+    -87.70185,
+    41.69165
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n111-pulaski",
+   "name": "111th & Pulaski",
+   "at": [
+    -87.7217,
+    41.69165
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n111-cicero",
+   "name": "111th & Cicero (Oak Lawn / Alsip)",
+   "at": [
+    -87.74155,
+    41.69165
+   ],
+   "kind": "border retail"
+  },
+  {
+   "id": "n119-western",
+   "name": "119th & Western (Blue Island line)",
+   "at": [
+    -87.682,
+    41.677
+   ],
+   "kind": "border retail"
+  },
+  {
+   "id": "n119-ashland",
+   "name": "119th & Ashland",
+   "at": [
+    -87.66215,
+    41.677
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n127-halsted",
+   "name": "127th & Halsted",
+   "at": [
+    -87.6423,
+    41.66235
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n127-ashland",
+   "name": "127th & Ashland (Calumet Park)",
+   "at": [
+    -87.66215,
+    41.66235
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n127-western",
+   "name": "127th & Western (Blue Island uptown)",
+   "at": [
+    -87.682,
+    41.66235
+   ],
+   "kind": "founding"
+  },
+  {
+   "id": "n127-kedzie",
+   "name": "127th & Kedzie",
+   "at": [
+    -87.70185,
+    41.66235
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n127-cicero",
+   "name": "127th & Cicero",
+   "at": [
+    -87.74155,
+    41.66235
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n147-halsted",
+   "name": "147th & Halsted",
+   "at": [
+    -87.6423,
+    41.62573
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n147-pulaski",
+   "name": "147th & Pulaski",
+   "at": [
+    -87.7217,
+    41.62573
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n147-cicero",
+   "name": "147th & Cicero",
+   "at": [
+    -87.74155,
+    41.62573
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n79-pulaski",
+   "name": "79th & Pulaski",
+   "at": [
+    -87.7217,
+    41.75025
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n87-halsted",
+   "name": "87th & Halsted",
+   "at": [
+    -87.6423,
+    41.7356
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n87-pulaski",
+   "name": "87th & Pulaski (Evergreen Park / Hometown corner)",
+   "at": [
+    -87.7217,
+    41.7356
+   ],
+   "kind": "border retail"
+  },
+  {
+   "id": "n103-pulaski",
+   "name": "103rd & Pulaski (Evergreen Park / Oak Lawn corner)",
+   "at": [
+    -87.7217,
+    41.7063
+   ],
+   "kind": "border retail"
+  },
+  {
+   "id": "n111-ashland",
+   "name": "111th & Ashland (Morgan Park)",
+   "at": [
+    -87.66215,
+    41.69165
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n119-pulaski",
+   "name": "119th & Pulaski",
+   "at": [
+    -87.7217,
+    41.677
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n127-pulaski",
+   "name": "127th & Pulaski",
+   "at": [
+    -87.7217,
+    41.66235
+   ],
+   "kind": "crossroads"
+  },
+  {
+   "id": "n147-western",
+   "name": "147th & Western (Posen / Harvey / Dixmoor)",
+   "at": [
+    -87.682,
+    41.62573
+   ],
+   "kind": "border retail"
+  }
+ ]
+}

@@ -32,6 +32,50 @@ ADR-009 leaves ring thresholds to be fitted from real data, so they live in
   rounded down to 5.
 - `research/*.csv`: corridors, cells, rings, corridor by event type.
 
+## Ring saturation (`ncr/saturation.py`)
+
+How far each ring has filled in, from the hexagons inside it: the average of
+coverage, steadiness, closure and reciprocity, each 0 to 1, with a confidence
+measure beside it and, in the history, the same ring a year earlier and the
+median of rings of the same size. Measured at res 7, 6 and 5 (small, medium,
+large). No threshold is set: where a ring counts as saturated is found through
+practice. Admin layer and research tables only; the public layer stays shapes.
+
+## Corridor segments (`ncr/corridors.py`)
+
+The commercial strips the layers are read along, one set per place in
+`geographies/`. A strip is cut at its nodes, never at a town line; the towns
+it crosses are reported as an overlay, with the share of the strip in each and
+whether it straddles a line. Each segment lists its res 7 hexagons. Rules and
+research: `docs/corridors-chicago-sw.md` (segment rules v1, proposed).
+
+```
+python -m ncr corridors --geography geographies/chicago-sw --out out/corridors
+python tools/corridor_map.py geographies/chicago-sw corridors.png   # needs matplotlib
+```
+
+## Layer map prototype (`tools/prototype_data.py`)
+
+One self-contained HTML page that draws the layers for people to read. The
+stack follows Matt's order (2026-11-25), bottom to top:
+
+1. **Base map**: towns, each in a light tint no neighbouring town shares, and
+   roads, kept see-through;
+2. **Hexagons**: res 7, 6 and 5 (small, medium, large), thin to heavy;
+3. **Corridors** and their nodes, in the middle: where the map is measuring;
+4. **Rings**, highlighted on top; tap one for its saturation.
+
+The page steps through the four, each with the earlier layers faded, or shows
+them all with a switch per layer. Small hexagons, side streets and segment
+names appear only when zoomed in. Busy places and rings are the practice data.
+
+```
+python tools/prototype_data.py out/ncr-layer-map.html   # template: tools/prototype/
+```
+
+Next installment: put the layer order, roles and meanings into the data itself
+(not only the page's drawing code), so an agent reads the same cues a person sees.
+
 ## Run it
 
 ```
