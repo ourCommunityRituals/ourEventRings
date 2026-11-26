@@ -1,5 +1,5 @@
 h3==4.5.1
 networkx==3.7
-numpy==2.5.3
+numpy==2.5.5
 shapely==2.2.0
 pytest==9.1.1
